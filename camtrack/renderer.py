@@ -208,11 +208,11 @@ class CameraTrackRenderer:
         m2= np.eye(4, dtype=np.float32)
         m1[:3, 3] = translation
         m2[:3, :3] = rotation
-        return np.dot(m1, m2)
+        return np.dot(m2, m1)
 
     def _matrix_project(self, fovy, znear=0.5, zfar=100.):
         aspect_ratio = GLUT.glutGet(GLUT.GLUT_WINDOW_WIDTH) / GLUT.glutGet(GLUT.GLUT_WINDOW_HEIGHT)
-        ymax = znear * np.tan(fovy)
+        ymax = znear * np.tan(fovy / 2.)
         xmax = ymax * aspect_ratio
         delta = znear - zfar
 
