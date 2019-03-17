@@ -12,7 +12,7 @@ from OpenGL.GL import shaders
 from OpenGL import GLUT
 from OpenGL.arrays import vbo
 
-import camtrack.data3d
+import data3d
 
 
 MODEL = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]], dtype=np.float32)
@@ -85,9 +85,9 @@ class CameraTrackRenderer:
 
     def __init__(self,
                  cam_model_files: Tuple[str, str],
-                 tracked_cam_parameters: camtrack.data3d.CameraParameters,
-                 tracked_cam_track: List[camtrack.data3d.Pose],
-                 point_cloud: camtrack.data3d.PointCloud):
+                 tracked_cam_parameters: data3d.CameraParameters,
+                 tracked_cam_track: List[data3d.Pose],
+                 point_cloud: data3d.PointCloud):
         """
         Initialize CameraTrackRenderer. Load camera model, create buffer objects, load textures,
         compile shaders, e.t.c.

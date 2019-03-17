@@ -12,8 +12,8 @@ import numpy as np
 from OpenGL import GLUT
 import transforms3d.euler
 
-from camtrack.data3d import read_camera_parameters, read_poses, read_point_cloud, PointCloud, Pose
-from camtrack.renderer import CameraTrackRenderer
+from data3d import read_camera_parameters, read_poses, read_point_cloud, PointCloud, Pose
+from renderer import CameraTrackRenderer
 
 
 def _detect_point_cloud_scale(point_cloud, percentile=70):

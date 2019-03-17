@@ -19,15 +19,13 @@ import click
 import cv2
 import numpy as np
 
-import camtrack.frameseq
+import frameseq
 
 
 class FrameCorners:
     """
     namedtuple-like class representing corners belonging to one frame.
-
     All fields should be NumPy 2D arrays of shape=(-1, 2) or shape=(-1, 1).
-
     All data should be sorted by corner ids to allow usage of binary search
     (np.searchsorted).
     """
@@ -37,9 +35,7 @@ class FrameCorners:
     def __init__(self, ids, points, sizes):
         """
         Construct FrameCorners.
-
         You may add your own fields if needed.
-
         :param ids: integer ids of corners
         :param points: coordinates of corners
         :param sizes: block sizes used for corner calculation (in pixels on original image format)
@@ -71,7 +67,6 @@ def filter_frame_corners(frame_corners: FrameCorners,
                          mask: np.ndarray) -> FrameCorners:
     """
     Filter frame corners using boolean mask.
-
     :param frame_corners: frame corners to filter.
     :param mask: boolean mask, all elements marked by False will be filtered out.
     :return: filtered corners.
@@ -86,7 +81,6 @@ def _to_int_tuple(point):
 def draw(grayscale_image: np.ndarray, corners: FrameCorners) -> np.ndarray:
     """
     Draw corners on image.
-
     :param grayscale_image: grayscale float32 image.
     :param corners: corners to draw, pyramid levels must be less than 7.
     :return: BGR image with drawn corners.
@@ -116,6 +110,10 @@ class CornerStorage(abc.ABC):
     def __iter__(self):
         pass
 
+    @abc.abstractmethod
+    def max_corner_id(self):
+        pass
+
 
 class StorageImpl(CornerStorage):
     """
@@ -128,6 +126,7 @@ class StorageImpl(CornerStorage):
         """
         super().__init__()
         self._corners = list(corners_for_each_frame)
+        self._max_id = max(c.ids.max() for c in self._corners)
 
     def __getitem__(self, frame: int) -> FrameCorners:
         return self._corners[frame]
@@ -137,6 +136,9 @@ class StorageImpl(CornerStorage):
 
     def __iter__(self):
         return iter(self._corners)
+
+    def max_corner_id(self):
+        return self._max_id
 
 
 class StorageFilter(CornerStorage):
@@ -164,12 +166,14 @@ class StorageFilter(CornerStorage):
         for frame in range(len(self)):  # pylint:disable=consider-using-enumerate
             yield self[frame]
 
+    def max_corner_id(self):
+        return self._storage.max_corner_id()
+
 
 def without_short_tracks(corner_storage: CornerStorage,
                          min_len: int) -> CornerStorage:
     """
     Create corner storage wrapper to filter out short tracks.
-
     :param corner_storage: storage to wrap.
     :param min_len: min allowed track length.
     :return: filtered corner storage.
@@ -189,7 +193,6 @@ def without_short_tracks(corner_storage: CornerStorage,
 def dump(corner_storage: CornerStorage, stream: IO[bytes]) -> None:
     """
     Dump corner storage.
-
     :param stream: file-like writable object.
     """
     pickle.dump(list(corner_storage), stream)
@@ -198,7 +201,6 @@ def dump(corner_storage: CornerStorage, stream: IO[bytes]) -> None:
 def load(stream: IO[bytes]) -> CornerStorage:
     """
     Load corner storage.
-
     :param stream: file-like readable object.
     :return: loaded corner storage.
     """
@@ -208,7 +210,6 @@ def load(stream: IO[bytes]) -> CornerStorage:
 def create_cli(build):
     """
     Create command line interface for 'corners' module.
-
     :param build: function that builds corner storage from frame sequence.
     :return: CLI function.
     """
