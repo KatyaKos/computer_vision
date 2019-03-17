@@ -61,7 +61,7 @@ def _initialize_cloud(corner_storage, intrinsic_mat, triang_pars):
 
 
 def _track_camera(corner_storage: CornerStorage,
-                  intrinsic_mat: np.ndarray, min_triangulation_angle_deg=0.7) \
+                  intrinsic_mat: np.ndarray, min_triangulation_angle_deg=2.) \
         -> Tuple[List[np.ndarray], PointCloudBuilder]:
 
     triang_pars = TriangulationParameters(
@@ -88,7 +88,11 @@ def _track_camera(corner_storage: CornerStorage,
             print("Tracking failed with len < 4!")
             if min_triangulation_angle_deg <= 0.3:
                 return [], PointCloudBuilder()
-            return _track_camera(corner_storage, intrinsic_mat, min_triangulation_angle_deg - 0.1)
+            if min_triangulation_angle_deg > 1.:
+                min_triangulation_angle_deg -= 1.
+            else:
+                min_triangulation_angle_deg -= 0.2
+            return _track_camera(corner_storage, intrinsic_mat, min_triangulation_angle_deg)
 
         obj = builder.points[obj_ids]
         imgs = corner.points[imgs_ids]
@@ -101,7 +105,11 @@ def _track_camera(corner_storage: CornerStorage,
             print("Tracking failed with no res!")
             if min_triangulation_angle_deg <= 0.3:
                 return [], PointCloudBuilder()
-            return _track_camera(corner_storage, intrinsic_mat, min_triangulation_angle_deg - 0.1)
+            if min_triangulation_angle_deg > 1.:
+                min_triangulation_angle_deg -= 1.
+            else:
+                min_triangulation_angle_deg -= 0.2
+            return _track_camera(corner_storage, intrinsic_mat, min_triangulation_angle_deg)
 
         res_ids = np.delete(builder.ids[obj_ids], inliers, axis=0)
         views.append(rodrigues_and_translation_to_view_mat3x4(rvec, tvec))
