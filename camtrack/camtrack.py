@@ -38,7 +38,7 @@ def _initialize_with_history(corners_prev, corners, intrinsic_mat, triang_pars):
     view_mat, points, ids = None, np.array([], dtype=np.int32), np.array([], dtype=np.int32)
     for r in [r1, r2]:
         for tt in [t.reshape(-1), -t.reshape(-1)]:
-            view_ = pose_to_view_mat3x4(Pose(r, tt))
+            view_ = pose_to_view_mat3x4(Pose(r.T, r.T @ tt))
             pts_, ids_ = triangulate_correspondences(correspondences, eye3x4(), view_, intrinsic_mat, triang_pars)
             if pts_.size > points.size:
                 view_mat, points, ids = view_, pts_, ids_
@@ -46,8 +46,12 @@ def _initialize_with_history(corners_prev, corners, intrinsic_mat, triang_pars):
     return view_mat, points, ids
 
 
-def _initialize_cloud(corner_storage, intrinsic_mat, triang_pars):
+def _initialize_cloud(corner_storage, intrinsic_mat, min_triangulation_angle_deg):
     res = (None, None, np.array([], dtype=np.int32), np.array([], dtype=np.int32))
+    triang_pars = TriangulationParameters(
+        max_reprojection_error=max_reprojection_error,
+        min_triangulation_angle_deg=min_triangulation_angle_deg,
+        min_depth=min_depth)
     max_sz = -5
     for frame, corners in enumerate(corner_storage[1:], start=1):
         view, points, ids = _initialize_with_history(corner_storage[0], corners, intrinsic_mat, triang_pars)
@@ -55,21 +59,30 @@ def _initialize_cloud(corner_storage, intrinsic_mat, triang_pars):
         if len(ids) > max_sz:
             max_sz = len(ids)
             res = res_
+    if len(res[2]) == 0:
+        print("Initializing failed with empty ids!")
+        if min_triangulation_angle_deg <= 0.3:
+            return min_triangulation_angle_deg, res[0], res[1], PointCloudBuilder()
+        if min_triangulation_angle_deg > 1.:
+            min_triangulation_angle_deg -= 1.
+        else:
+            min_triangulation_angle_deg -= 0.2
+        return _initialize_cloud(corner_storage, intrinsic_mat, min_triangulation_angle_deg)
     builder = PointCloudBuilder()
     builder.add_points(res[3], res[2])
-    return res[0], res[1], builder
+    return min_triangulation_angle_deg, res[0], res[1], builder
 
 
 def _track_camera(corner_storage: CornerStorage,
-                  intrinsic_mat: np.ndarray, min_triangulation_angle_deg=2.) \
+                  intrinsic_mat: np.ndarray, min_triangulation_angle_deg=3.) \
         -> Tuple[List[np.ndarray], PointCloudBuilder]:
 
+    views = [eye3x4()]
+    min_triangulation_angle_deg, init_frame, init_view, builder =_initialize_cloud(corner_storage, intrinsic_mat, min_triangulation_angle_deg)
     triang_pars = TriangulationParameters(
         max_reprojection_error=max_reprojection_error,
         min_triangulation_angle_deg=min_triangulation_angle_deg,
         min_depth=min_depth)
-    views = [eye3x4()]
-    init_frame, init_view, builder = _initialize_cloud(corner_storage, intrinsic_mat, triang_pars)
 
     print('Min triang angle: {}'.format(min_triangulation_angle_deg))
 
