@@ -13,6 +13,7 @@ __all__ = [
     'eye3x4',
     'project_points',
     'rodrigues_and_translation_to_view_mat3x4',
+    'view_mat3x4_to_rodrigues_and_translation',
     'to_opencv_camera_mat3x3',
     'triangulate_correspondences',
     'view_mat3x4_to_pose',
@@ -243,6 +244,11 @@ def rodrigues_and_translation_to_view_mat3x4(r_vec: np.ndarray,
     rot_mat, _ = cv2.Rodrigues(r_vec)
     view_mat = np.hstack((rot_mat, t_vec))
     return view_mat
+
+
+def view_mat3x4_to_rodrigues_and_translation(view_mat: np.ndarray):
+    r_vec, _ = cv2.Rodrigues(view_mat[:, :3])
+    return r_vec, view_mat[:, 3]
 
 
 class PointCloudBuilder:

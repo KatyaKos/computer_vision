@@ -14,10 +14,12 @@ from corners import CornerStorage
 from data3d import CameraParameters, PointCloud, Pose
 import frameseq
 from _camtrack import *
+from ba import run_bundle_adjustment
 
 
 max_reprojection_error=1.
 min_depth=0.1
+last_ba_frames=25
 
 
 def _initialize_with_history(corners_prev, corners, intrinsic_mat, triang_pars):
@@ -139,8 +141,14 @@ def _track_camera(corner_storage: CornerStorage,
             delta += len(new_ids)
             builder.add_points(new_ids, new_points)
 
-        if frame % 10 == 0:
+        if frame % 10 == 0 and frame > last_ba_frames:
             print('Frame {}: new points {}, total {}'.format(frame, delta, builder.points.shape[0]))
+            views[-last_ba_frames:] = run_bundle_adjustment(
+                intrinsic_mat=intrinsic_mat,
+                list_of_corners=list(corner_storage)[-last_ba_frames:],
+                max_inlier_reprojection_error=triang_pars.max_reprojection_error,
+                views=views[-last_ba_frames:],
+                pc_builder=builder)
 
     return views, builder
 
